@@ -182,6 +182,7 @@ if (10 > 1) {
 }
 `, "unknown operator: BOOLEAN + BOOLEAN"},
 		{"foobar", "identifier not found: foobar"},
+		{`"Hello" - "World"`, "unknown operator: STRING - STRING"},
 	}
 
 	for _, tt := range tests {
@@ -272,6 +273,35 @@ addTwo(2);
 
 	testIntegerObject(t, testEval(input), 4)
 }
+
+func TestStringLiteral(t *testing.T) {
+	input := `"Hello World!"`
+
+	evaluated := testEval(input)
+
+	str, ok := evaluated.(*object.String)
+	if !ok {
+		t.Fatalf("object is not String, got = %T (%+v)", evaluated, evaluated)
+	}
+
+	if str.Value != "Hello World!" {
+		t.Errorf("String want = %v, got = %v", "Hello World!", str.Value)
+	}
+}
+
+func TestStringConcatenation(t *testing.T) {
+	input := `"Hello" + " " + "World!"`
+
+	evaulated := testEval(input)
+	str, ok := evaulated.(*object.String)
+	if !ok {
+		t.Fatalf("object is not String, got = %T, (%+v)", evaulated, evaulated)
+	}
+	if str.Value != "Hello World!" {
+		t.Errorf("String want = %q, got = %q", "Hello World!", str.Value)
+	}
+}
+
 func testNullObject(t *testing.T, obj object.Object) bool {
 	if obj != NULL {
 		t.Errorf("object is not NULL, got = %T (%+v)", obj, obj)

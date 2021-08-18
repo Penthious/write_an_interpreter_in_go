@@ -12,8 +12,9 @@ const (
 	EOF     = "EOF"
 
 	// Identifiers + literals
-	IDENT = "INDENT" // add, foobar, x, y, ...
-	INT   = "INT"    // 123456
+	IDENT  = "INDENT" // add, foobar, x, y, ...
+	INT    = "INT"    // 123456
+	STRING = "STRING"
 
 	// Operators
 	ASSIGN   = "="
