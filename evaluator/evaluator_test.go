@@ -183,6 +183,7 @@ if (10 > 1) {
 `, "unknown operator: BOOLEAN + BOOLEAN"},
 		{"foobar", "identifier not found: foobar"},
 		{`"Hello" - "World"`, "unknown operator: STRING - STRING"},
+		{`{"name": "Monkey"}[fn(x) { x }];`, "unusable as hash key: FUNCTION"},
 	}
 
 	for _, tt := range tests {
@@ -442,6 +443,92 @@ func TestArrayIndexExpressions(t *testing.T) {
 	}
 }
 
+func TestHashLiterals(t *testing.T) {
+	input := `let two = "two";
+{
+	"one": 10 - 9,
+	two: 1 + 1,
+	"thr" + "ee": 6 / 2,
+	4: 4,
+	true: 5,
+	false: 6
+}`
+
+	evaulated := testEval(input)
+
+	result, ok := evaulated.(*object.Hash)
+	if !ok {
+		t.Fatalf("Eval didnt return Hash, got=%T (%+v)", evaulated, evaulated)
+	}
+
+	want := map[object.HashKey]int64{
+		(&object.String{Value: "one"}).HashKey():   1,
+		(&object.String{Value: "two"}).HashKey():   2,
+		(&object.String{Value: "three"}).HashKey(): 3,
+		(&object.Integer{Value: 4}).HashKey():      4,
+		TRUE.HashKey():                             5,
+		FALSE.HashKey():                            6,
+	}
+
+	if len(result.Pairs) != len(want) {
+		t.Fatalf("Hash.Pairs len want %d, got %d", len(want), len(result.Pairs))
+	}
+
+	for wantKey, wantValue := range want {
+		pair, ok := result.Pairs[wantKey]
+		if !ok {
+			t.Errorf("no pair for given key in pairs, %q", wantKey)
+		}
+
+		testIntegerObject(t, pair.Value, wantValue)
+	}
+}
+
+func TestHashIndexExpression(t *testing.T) {
+	tests := []struct {
+		input string
+		want  interface{}
+	}{
+		{
+			`{"foo": 5}["foo"]`,
+			5},
+		{
+			`{"foo": 5}["bar"]`,
+			nil,
+		},
+		{
+			`let key = "foo"; {"foo": 5}[key]`,
+			5,
+		},
+		{
+			`{}["foo"]`,
+			nil,
+		},
+		{
+			`{5: 5}[5]`,
+			5,
+		},
+		{
+			`{true: 5}[true]`,
+			5,
+		},
+		{
+			`{false: 5}[false]`,
+			5,
+		},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+
+		integer, ok := tt.want.(int)
+		if ok {
+			testIntegerObject(t, evaluated, int64(integer))
+		} else {
+			testNullObject(t, evaluated)
+		}
+	}
+}
 func testNullObject(t *testing.T, obj object.Object) bool {
 	if obj != NULL {
 		t.Errorf("object is not NULL, got = %T (%+v)", obj, obj)
